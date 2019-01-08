@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+
+	<title>Chat App | {{room}}</title>
+	<meta name="description" content="Chat App">
+	<meta name="author" content="ligmaballs">
+
+<style>
+
+</style>
+</head>
+
+<body>
+	<h1 class="channel">{{room}}</h1>
+	<ul id="messages"></ul>
+	<form action="" class="msgform">
+		<input id="m" autocomplete="off" placeholder="Type your message" /><button>Send</button>
+	</form>
+	<form action="" class="msgchannel">
+		<input id="c" autocomplete="off" placeholder="Type username" /><button>Chat</button>
+	</form>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+	<script src="/static/script.js"></script>
+</body>
+</html>
