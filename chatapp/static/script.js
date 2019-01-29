@@ -1,11 +1,15 @@
-'use strict';
-
-
 var socket = io();
 var full = []
 var currentuser;
 var copyid = new ClipboardJS('#copyid');
+iceServers = [
+	{ url: 'stun:stun1.l.google.com:19302' },
+];
 
+var peer = new RTCPeerConnection({
+    'iceServers': iceServers,
+})
+0
 //Storage
 
 // $(() => {
@@ -14,30 +18,122 @@ var copyid = new ClipboardJS('#copyid');
 
 // });
 
-const mediaStreamConstraints = {
-	video: true,
-};
-  
-// Video element where stream will be placed.
-const localVideo = document.querySelector('video');
 
-// Local stream that will be reproduced on the video.
+//Get media
 let localStream;
 
-// Handles success by adding the MediaStream to the video element.
+const mediaStreamConstraints = {
+	audio: true,
+	video: true,
+}
+
+localVideo = $("#localVideo")[0]
+remoteVideo = $("#remoteVideo")[0]
+
 function gotLocalMediaStream(mediaStream) {
-	localStream = mediaStream;
 	localVideo.srcObject = mediaStream;
-}
+	localStream = mediaStream;
+	
+	// trace('Received local stream.');
+};
 
-// Handles error by logging a message to the console with the error message.
-function handleLocalMediaStreamError(error) {
-	console.log('navigator.getUserMedia error: ', error);
-}
-
-// Initializes media stream.
 navigator.mediaDevices.getUserMedia(mediaStreamConstraints)
-	.then(gotLocalMediaStream).catch(handleLocalMediaStreamError);
+  .then(gotLocalMediaStream).catch(console.error);
+
+
+//Share media
+peer.addStream(localStream)
+// trace('Added local stream to localPeerConnection.');
+peer.addEventListener('icecandidate', handleConnection);
+
+function handleConnection(event) {
+	const peerConnection = event.target;
+	const iceCandidate = event.candidate;
+
+	if (iceCandidate) {
+		const newIceCandidate = new RTCIceCandidate(iceCandidate);
+		const otherPeer = getOtherPeer(peerConnection);
+
+		otherPeer.addIceCandidate(newIceCandidate)
+		.then(() => {
+			handleConnectionSuccess(peerConnection);
+		}).catch((error) => {
+			handleConnectionFailure(peerConnection, error);
+		});
+
+		// trace(`${getPeerName(peerConnection)} ICE candidate:\n` + `${event.candidate.candidate}.`);
+	}
+}
+
+trace('localPeerConnection createOffer start.');
+peer.createOffer(offerOptions)
+  .then(createdOffer).catch(setSessionDescriptionError);
+
+
+
+// Logs offer creation and sets peer connection session descriptions.
+function createdOffer(description) {
+	trace(`Offer from localPeerConnection:\n${description.sdp}`);
+  
+	trace('localPeerConnection setLocalDescription start.');
+	localPeerConnection.setLocalDescription(description)
+		.then(() => {
+			setLocalDescriptionSuccess(localPeerConnection);
+		}).catch(setSessionDescriptionError);
+  
+	trace('remotePeerConnection setRemoteDescription start.');
+	remotePeerConnection.setRemoteDescription(description)
+		.then(() => {
+			setRemoteDescriptionSuccess(remotePeerConnection);
+		}).catch(setSessionDescriptionError);
+  
+	trace('remotePeerConnection createAnswer start.');
+	remotePeerConnection.createAnswer()
+		.then(createdAnswer)
+		.catch(setSessionDescriptionError);
+}
+  
+  // Logs answer to offer creation and sets peer connection session descriptions.
+function createdAnswer(description) {
+	trace(`Answer from remotePeerConnection:\n${description.sdp}.`);
+  
+	trace('remotePeerConnection setLocalDescription start.');
+	remotePeerConnection.setLocalDescription(description)
+		.then(() => {
+			setLocalDescriptionSuccess(remotePeerConnection);
+		}).catch(setSessionDescriptionError);
+  
+	trace('localPeerConnection setRemoteDescription start.');
+	localPeerConnection.setRemoteDescription(description)
+		.then(() => {
+			setRemoteDescriptionSuccess(localPeerConnection);
+		}).catch(setSessionDescriptionError);
+}
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -333,11 +429,11 @@ socket.on('concurrent', full => {
 	console.log(full)
 	for (var i in full) {
 		targetchan = ""
-		let publicz = ""
+		let public = ""
 
 		if (full[i].type === 0) {
 			targetchan = " target-chan='" + full[i].id + "'>"
-			publicz = "public"
+			public = "public"
 		} else {
 			targetchan = ">"
 		}
@@ -345,7 +441,7 @@ socket.on('concurrent', full => {
 
 		$("#channels").append(`
 		<div class="row channelitemrow">
-			<div class="col-md-12 channelitem ${publicz}" target-user="${full[i].name}"${targetchan}${full[i].name}</div>
+			<div class="col-md-12 channelitem ${public}" target-user="${full[i].name}"${targetchan}${full[i].name}</div>
 		</div>`)
 	}
 });

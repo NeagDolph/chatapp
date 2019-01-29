@@ -97,7 +97,8 @@
 </head>
 
 <body>
-		<video autoplay playsinline></video>
+	<video id="localVideo" autoplay playsinline></video>
+	<video id="remoteVideo" autoplay playsinline></video>
 
 	<div class="row main">
 			<div class="col-md-2 col-xs-2 col-2 channels">
@@ -173,7 +174,7 @@
 		</div>
 
 	</div>
-	<script src="/static/webrtc.js"></script>
+	<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
