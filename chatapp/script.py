@@ -133,6 +133,8 @@ def mess():
 		chantype = request.form.get("channeltype", False)
 		limit = request.form.get("limit", 10)
 		print("ggoo", channel, chantype)
+		if not channel:
+			return ""
 
 		if chantype == "1":
 			if channel.startswith(username + ";") or channel.endswith(";" + username):
