@@ -141,7 +141,9 @@ def mess():
 				db.execute(query, (int(limit),))
 				result = db.fetchall()[::-1]
 
+
 				total = []
+
 
 				for i in result:
 					isyou = i[2] == userid

@@ -1,3 +1,6 @@
+'use strict';
+
+
 var socket = io();
 var full = []
 var currentuser;
@@ -10,6 +13,34 @@ var copyid = new ClipboardJS('#copyid');
 
 
 // });
+
+const mediaStreamConstraints = {
+	video: true,
+};
+  
+// Video element where stream will be placed.
+const localVideo = document.querySelector('video');
+
+// Local stream that will be reproduced on the video.
+let localStream;
+
+// Handles success by adding the MediaStream to the video element.
+function gotLocalMediaStream(mediaStream) {
+	localStream = mediaStream;
+	localVideo.srcObject = mediaStream;
+}
+
+// Handles error by logging a message to the console with the error message.
+function handleLocalMediaStreamError(error) {
+	console.log('navigator.getUserMedia error: ', error);
+}
+
+// Initializes media stream.
+navigator.mediaDevices.getUserMedia(mediaStreamConstraints)
+	.then(gotLocalMediaStream).catch(handleLocalMediaStreamError);
+
+
+
 
 
 
@@ -302,11 +333,11 @@ socket.on('concurrent', full => {
 	console.log(full)
 	for (var i in full) {
 		targetchan = ""
-		let public = ""
+		let publicz = ""
 
 		if (full[i].type === 0) {
 			targetchan = " target-chan='" + full[i].id + "'>"
-			public = "public"
+			publicz = "public"
 		} else {
 			targetchan = ">"
 		}
@@ -314,7 +345,7 @@ socket.on('concurrent', full => {
 
 		$("#channels").append(`
 		<div class="row channelitemrow">
-			<div class="col-md-12 channelitem ${public}" target-user="${full[i].name}"${targetchan}${full[i].name}</div>
+			<div class="col-md-12 channelitem ${publicz}" target-user="${full[i].name}"${targetchan}${full[i].name}</div>
 		</div>`)
 	}
 });
