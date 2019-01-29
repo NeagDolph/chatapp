@@ -15,7 +15,21 @@
 <body>
 	<ul id="messages"></ul>
 	<form action="/login" method="POST">
-		<input id="m" name="user" autocomplete="off" placeholder="Type your username" /><button>Chat!</button>
+		<h2>Login</h2>
+		<input id="ulogin" name="user" autocomplete="off" placeholder="Username" /><br>
+		<input id="plogin" name="password" autocomplete="off" placeholder="Password" /><br>
+		<button>Login</button>
+
+	</form>
+	<br>
+	<br>
+	<form action="/register" method="POST">
+
+		<h2>Register</h2>
+		<input id="uregister" name="user" autocomplete="off" placeholder="Username" /><br>
+		<input id="pregister" name="password" autocomplete="off" placeholder="Password" /><br>
+		<button>Register</button>
+
 	</form>
 </body>
 </html>

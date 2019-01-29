@@ -1,41 +1,245 @@
 from flask import *
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_socketio import SocketIO, emit, join_room, leave_room, send
 from flask_session import Session
 import random
+import json
+import MySQLdb
+import base64
+import re
+import os
+import hashlib
+import bcrypt
+import time
+import json
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 channels = []
 
-SESSION_TYPE = 'redis'
+SESSION_TYPE = 'filesystem'
 app.config.from_object(__name__)
 Session(app)
+
+mydb = MySQLdb.connect(
+  host="149.56.100.99",
+  user="chatapp",
+  passwd="sAnULny57jnT",
+  database="chatapp"
+)
+
+db = mydb.cursor()
+
 
 
 def randomString(stringLength=10):
 	letters = "abcdefghijklmnopqrstuvwxyz"
 	return ''.join(random.choice(letters) for i in range(stringLength))
 
+'''@app.route("/concurrent", methods=["POST"])
+def con():
+	username = session.get("user", False)
+	userid = session.get("userid", False)
+		
+	print(userid)
+
+	if username and userid:
+		query = "select * from linkedchan where userid = %s"
+		db.execute(query, (userid,))
+		result = db.fetchall()
+		print(result)
+
+		concurrent = []
+
+		for i in result:
+			if i[2] == 1:
+				toapp = i[1].split(";")
+				try:
+					toapp.remove(username)
+				except:
+					pass
+				concurrent.append({"name": toapp[0], "type": 1})
+			elif i[2] == 0:
+				toapp = i[1].split("$$")
+				toapp1 = base64.b64decode(toapp[1].encode()).decode()
+				try:
+					toapp.remove(username)
+				except:
+					pass
+				concurrent.append({"name": toapp1, "type": 0, "id": toapp[0]})
+
+		return json.dumps(concurrent)
+
+	else:
+		session.clear()
+		return redirect("/")'''
+
+@app.route("/add", methods=["POST"])
+def add():
+	username = session.get("user", False)
+	userid = session.get("userid", False)
+	added = request.form.get("user", False)
+
+	channelname = ";".join(sorted([username, added]))
+	hashedname = hashlib.md5(channelname.encode()).hexdigest()
+
+	query = "SELECT userid FROM users WHERE user='%s'"
+	db.execute(query % added)
+	addedid = db.fetchall()
+	userexist = len(addedid) > 0
+
+	try:
+		addedid = addedid[0][0]
+		userexist = True
+	except IndexError:
+		userexist = False
+
+		
+	try:
+		query = "SELECT COUNT(*) FROM direct_%s"
+		db.execute(query % (hashedname))
+		channelexist = True
+	except:
+		channelexist = False
+
+
+	if userexist:
+		if not channelexist:
+			query = 'CREATE TABLE IF NOT EXISTS direct_%s (message TEXT, date TEXT, userid TEXT, id INTEGER Primary Key auto_increment)'
+			db.execute(query % hashedname)	
+			
+			query = 'insert into linkedchan values(%s, %s, true)'
+			db.execute(query, (userid, channelname,))
+		
+			query = 'insert into linkedchan values(%s, %s, true)'
+			db.execute(query, (addedid, channelname,))
+
+			mydb.commit()
+
+			return "success"
+		else:
+			return "already"
+
+	else:
+		return "noexist"
+
+@app.route("/messages", methods=["POST"])
+def mess():
+	username = session.get("user", False)
+	userid = session.get("userid", False)
+	if username:
+		channel = request.form.get("channel", False)
+		chantype = request.form.get("channeltype", False)
+		limit = request.form.get("limit", 10)
+		print("ggoo", channel, chantype)
+
+		if chantype == "1":
+			if channel.startswith(username + ";") or channel.endswith(";" + username):
+				hashedname = hashlib.md5(channel.encode()).hexdigest()
+				query = "select * from direct_" + hashedname + " order by id desc limit %s"
+				db.execute(query, (int(limit),))
+				result = db.fetchall()[::-1]
+
+				total = []
+
+				for i in result:
+					isyou = i[2] == userid
+					compiled = {'data': i[0], 'you': isyou, 'time': i[1]}
+					total.append(compiled)
+
+				print(total)
+				return json.dumps(total)
+			else:
+				return "whoops"
+		elif chantype == "0":
+			print("eee", '"%s"' % channel)
+			query = "select * from channel_" + channel + " order by id desc limit %s"
+			db.execute(query, (int(limit),))
+			result = db.fetchall()[::-1]
+
+			total = []
+
+			for i in result:
+				isyou = i[2].split("$$")[0] == userid
+				compiled = {'data': i[0], 'you': isyou, 'time': i[1], 'sender': i[2].split("$$")[1]}
+				total.append(compiled)
+
+			print(total)
+			return json.dumps(total)
+
+	else:
+		session.clear()
+		return redirect("/")
+
 @app.route('/')
 def home():
-	if session.get("key", False):
-		return render_template("index.html", room=session.get("room", "mains"))
+	if session.get("user", False):
+		return render_template("index.html", username=base64.b64encode(session.get("user", "undefined").encode()).decode(), userid=session.get("userid", "undefined"))
 	else:
 		return render_template("login.html")
 
-@app.route("/login", methods=["POST"])
-def login():
-	if not session.get("key", False):
-		username = request.form.get("user", False).lower()
-		if username:
-			session['user'] = request.form.get("user", False).lower()
-			session['key'] = randomString(69)
-			session['room'] = "mains"
+@app.route("/register", methods=["POST"])
+def register():
+	username = request.form.get("user", False).lower()
+	password = request.form.get("password", False)
+
+	if username and password:
+		query = "SELECT COUNT(*) FROM users WHERE user=%s"
+		db.execute(query, (username,))
+		userexist = db.fetchall()[0][0] > 0
+
+		if not userexist:
+			salt = bcrypt.gensalt().decode()
+			salted = salt + ";" + hashlib.sha512((salt + password).encode()).hexdigest()
+			userid = randomString(30)
+
+
+			query = "insert into users values (%s, %s, %s)"
+			db.execute(query, (username, salted, userid,))
+			mydb.commit()
+
+			session['user'] = username
+			session['userid'] = userid
 			return redirect("/")
 		else:
-			session.clear()
-			return redirect("/")
+			return "User exists"
+	else:
+		return redirect("/")
+
+
+	
+
+
+@app.route("/login", methods=["POST"])
+def login():
+	username = request.form.get("user", False).lower()
+	password = request.form.get("password", False)
+
+
+	if username and password:
+		query = "SELECT password, userid FROM users WHERE user=%s"
+		db.execute(query, (username,))
+		storedpassword = db.fetchall()
+
+		if len(storedpassword) > 0:
+
+			storedsalt = storedpassword[0][0].split(";")[0]
+			storedpass = storedpassword[0][0].split(";")[1]
+
+			salted = hashlib.sha512((storedsalt + password).encode()).hexdigest()
+
+			if salted == storedpass and storedpassword[0][1]:
+				print("a")
+				session['user'] = username
+				session['userid'] = storedpassword[0][1]
+			else:
+				return "Wrong username or password"
+		else:
+			return "Wrong username or password"
+		return redirect("/")
+	else:
+		return redirect("/")
 		
 
 @app.route('/logout')
@@ -46,55 +250,147 @@ def logout():
 
 @socketio.on('connect')
 def connect():
-	 print("CONNECTED")
-	 join_room(session.get("room", "mains"))
+	username = session.get("user", False)
+	userid = session.get("userid", False)
 
+	if username and userid:
+		
+		join_room(username)
 
-@socketio.on("message")
-def msg(message):
-	if session.get("key", False):
-		msg = message
-		user = session.get("user", "undefined")
-		if session.get("room", "mains") == "mains":
-			join_room("mains")
-			emit('new', {'data': message, 'user': user}, room="mains")
-			print(user)
-		else:
-			print(session.get("room", "mains"))
-			join_room(session.get("room", "mains"))
-			emit('new', {'data': message, 'user': user}, room=session.get("room", "mains"))
-	else:
-		session.clear()
+		query = "select * from linkedchan where userid = %s"
+		db.execute(query, (userid,))
+		result = db.fetchall()
+		# print(result)
 
-@socketio.on("channel")
-def chnl(channel):
-	channel = channel.lower()
-	if session.get("key", False):
-		print(channels)
-		if channel == "mains":
-			user = session.get("user", "undefined")
-			join_room("mains")
-			session["room"] = "mains"
-			emit('change', {'data': "mains"})
-		else:
-			if True in [channel in i for i in channels] and channel != session.get("user", False):
-				user = session.get("user", "undefined")
-				roomname = ";".join( sorted([user, channel]) )
-				print(roomname)
-				join_room(roomname)
-				session["room"] = roomname
-				emit('change', {'data': channel})
-			elif channel != session.get("user", False):
-				user = session.get("user", "undefined")
-				roomname = ";".join( sorted([user, channel]) )
-				channels.append(sorted([user, channel]))
-				print(roomname)
-				join_room(roomname)
-				session["room"] = roomname
-				emit('change', {'data': channel})
+		concurrent = []
+
+		for i in result:
+			if i[2] == 1:
+				toapp = i[1].split(";")
+				try:
+					toapp.remove(username)
+				except:
+					pass
+				concurrent.append({"name": toapp[0], "type": 1})
+			elif i[2] == 0:
+				toapp = i[1].split("$$")
+				toapp1 = base64.b64decode(toapp[1].encode()).decode()
+				try:
+					toapp.remove(username)
+				except:
+					pass
+				concurrent.append({"name": toapp1, "type": 0, "id": toapp[0]})
+				join_room(toapp[0])
+
+		emit("concurrent", concurrent)
+
 	else:
 		session.clear()
 		return redirect("/")
 
+
+@socketio.on("message")
+def msg(message):
+	if not message:
+		return
+
+	if message.get("message") == "":
+		return
+
+	msg = message.get("message", False)
+	user = message.get("user", False)
+	chantype = message.get("channeltype", False)
+
+	thisuser = session.get("user", "undefined")
+	userid = session.get("userid", "undefined")
+	timing = int(round(time.time() * 1000))
+
+	if chantype == 1:
+
+		channelname = ";".join(sorted([user, thisuser]))
+		hashedname = hashlib.md5(channelname.encode()).hexdigest()
+		query = "insert into direct_" + hashedname + " (message, date, userid) values (%s, %s, %s)"
+		db.execute(query, (msg, str(timing), userid))
+		mydb.commit()
+
+		emit("pm", {'data': msg, 'from': thisuser, 'time': timing}, room=user, json=True)
+	elif chantype == 0:
+		# channelname = message.get("channelid", False)
+
+		query = "insert into channel_" + user + " (message, date, userid) values (%s, %s, %s)"
+		db.execute(query, (msg, str(timing), userid + "$$" + thisuser))
+		mydb.commit()
+
+		emit("servermsg", {'data': msg, 'from': thisuser, 'time': timing}, room=user, json=True)
+
+
+
+@app.route("/delete")
+def delete():
+	userid = session.get("userid", False)
+
+	if userid:
+		query = "delete from linkedchan where channelid in (select channelid where userid = %s)"
+		db.execute(query, (userid,))
+		
+		query = "delete from users where userid = %s"
+		db.execute(query, (userid,))
+		
+		query = "delete from users where userid = %s"
+		db.execute(query, (userid,))
+
+		mydb.commit()
+
+		session.clear()
+
+		return redirect("/")
+
+		
+
+
+@app.route("/createchannel", methods=["POST"])
+def create():
+	username = session.get("user", False)
+	userid = session.get("userid", False)
+	channelname = request.form.get("channelname", False)
+
+	if channelname and userid and username:
+		channelid = randomString(29)
+
+		query = 'CREATE TABLE IF NOT EXISTS channel_%s (message TEXT, date TEXT, userid TEXT, id INTEGER Primary Key auto_increment)'
+		db.execute(query % channelid)
+		
+		query = 'insert into linkedchan values(%s, %s, 0)'
+		db.execute(query, (userid, channelid + "$$" + base64.b64encode(channelname.encode()).decode()))
+		
+		query = 'insert into channels values(%s, %s, %s)'
+		db.execute(query, (channelid, channelname, userid))
+
+		mydb.commit()
+
+		return 'success$$' + channelid
+	else:
+		return 'nologin'
+
+
+@app.route("/join/<path:path>")
+def join(path):
+	channelid = path
+	userid = session.get("userid", False)
+
+	query = "SELECT channelname FROM channels WHERE channelid=%s"
+	db.execute(query, (channelid,))
+	result = db.fetchall()
+
+	if len(result) > 0:
+		query = 'insert into linkedchan values(%s, %s, 0)'
+		db.execute(query, (userid, channelid + "$$" + base64.b64encode(result[0][0].encode()).decode()))
+
+		mydb.commit()
+
+	return redirect("/")
+
+
+
 if __name__ == '__main__':
-	socketio.run(app, host="149.56.100.99", port=5040, debug=True)
+	socketio.run(app, host="0.0.0.0", port=80, debug=True)

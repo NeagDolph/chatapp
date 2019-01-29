@@ -3,26 +3,186 @@
 <head>
 	<meta charset="utf-8">
 
-	<title>Chat App | {{room}}</title>
+	<title>Chat App</title>
 	<meta name="description" content="Chat App">
 	<meta name="author" content="ligmaballs">
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.css">
 
 <style>
+	.channels {
+	}
+
+	.channelitem {
+		height: 50px;
+		line-height: 50px;
+		text-align: center;
+		cursor: pointer;
+		margin: 6px 0;
+		border-radius: 12px;
+		border: solid 1px black;
+		font-size: 22px;
+	}
+
+	.chatarea {
+		height: 600px;
+		right: 0;
+		position: relative;
+		margin-left: 15px;
+	}
+
+	.main {
+		padding-left: 40px;
+		padding-top: 20px;
+	}
+
+	.messages {
+		height: 70vh;
+	}
+
+	.unread {
+		color: rgb(255, 87, 87);
+		border-color: rgb(255, 87, 87);
+	}
+
+	.adduser, .makechan, .copyid {
+		font-size: 18px;
+		text-align: center;
+		height: 30px;
+		margin-top: 15px;
+	}
+
+	#adduser, #makechan, #copyid {
+		margin: 0 auto;
+		position: relative;
+		cursor: pointer;
+	}
+
+	#channels {
+		display: block;
+	}
+
+	#adduser-input, #makechan-input {
+		border-radius: 5px;
+		text-align: center;
+		outline: 0;
+		border: 0;
+		width: 130px;
+		color: white;
+		background: #333;
+	}
+
+	#messages {
+		padding-bottom: 20px;
+	}
+
+	#msgscroll {
+		margin-bottom: 19px;
+		overflow-y: scroll;
+	}
+
+	.public {
+		background: rgb(121, 127, 207)
+	}
+
+	.copyid {
+		display: none;
+	}
+
+	.inchannel .copyid {
+		display: block;
+	}
 
 </style>
 </head>
 
 <body>
-	<h1 class="channel">{{room}}</h1>
-	<ul id="messages"></ul>
-	<form action="" class="msgform">
-		<input id="m" autocomplete="off" placeholder="Type your message" /><button>Send</button>
-	</form>
-	<form action="" class="msgchannel">
-		<input id="c" autocomplete="off" placeholder="Type username" /><button>Chat</button>
-	</form>
+
+	<div class="row main">
+			<div class="col-md-2 col-xs-2 col-2 channels">
+				<div class="row" id="channels">
+				</div>
+				<div class="row adduser">
+					<span id="adduser" 
+
+					data-tippy="input" 
+					data-tippy-content="<input placeholder='Username' id='adduser-input'>"
+
+					data-tippy-animation="shift-toward"
+					data-tippy-duration="300"
+					data-tippy-placement="bottom"
+					data-tippy-interactive="true"
+					data-tippy-intertia="true"
+					data-tippy-hideOnClick="true"
+					data-tippy-distance="0"
+					data-tippy-trigger="click"
+
+
+					>Add user</span>
+				</div>
+				
+				<div class="row makechan">
+					<span id="makechan" 
+
+					data-tippy="input" 
+					data-tippy-content="<input placeholder='Name' id='makechan-input'>"
+
+					data-tippy-animation="shift-toward"
+					data-tippy-duration="300"
+					data-tippy-placement="bottom"
+					data-tippy-interactive="true"
+					data-tippy-intertia="true"
+					data-tippy-hideOnClick="true"
+					data-tippy-distance="0"
+					data-tippy-trigger="click"
+
+
+					>Create Channel</span>
+				</div>
+				
+				<div class="row copyid">
+					<span id="copyid" data-clipboard-text="">Copy Server ID</span>
+				</div>
+			</div>
+
+		<div class="col-md-9 col-xs-9 col-9 chatarea" style="display: none;">
+
+			<div class="row">
+				<div class="col-md-12">
+					<h1 class="channel">msgs</h1>
+				</div>
+			</div>
+
+			<div class="row" id="msgscroll">
+				<div class="col-md-12 messages">
+					<ul id="messages"></ul>
+				</div>
+			</div>
+
+			<div class="row">
+				<div class="col-md-12">
+					<form action="" class="msgform">
+						<input id="m" autocomplete="off" placeholder="Type your message" /><button>Send</button>
+					</form>
+				</div>
+			</div>
+
+
+
+		</div>
+
+	</div>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+	<script src="https://unpkg.com/tippy.js@3/dist/tippy.all.min.js"></script>
+	<script>
+	var selfuser = atob("{{username}}")
+	var selfid = "{{userid}}"
+	</script>
 	<script src="/static/script.js"></script>
 </body>
 </html>
