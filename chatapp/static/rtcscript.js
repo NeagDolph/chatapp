@@ -1,11 +1,17 @@
 var iceServers = [
-  { url: "stun:stun1.l.google.com:19302" },
+  { url: 'stun:stun1.l.google.com:19302' },
   {
-    url: "turn:numb.viagenie.ca",
-    credential: "muazkh",
-    username: "webrtc@live.com"
+    'urls': [
+      'turn:webrtcweb.com:7788', // coTURN 7788+8877
+      'turn:webrtcweb.com:8877',
+      'turn:webrtcweb.com:4455', // restund udp
+    ],
+    'username': 'muazkh',
+    'credential': 'muazkh'
   }
 ];
+
+audio = $("#audio1")[0]
 
 var sdpConstraints = {
   optional: [],
@@ -23,13 +29,21 @@ var optional = {
   optional: [DtlsSrtpKeyAgreement]
 };
 
-var peer = new webkitRTCPeerConnection({
+var peer = new RTCPeerConnection({
   iceServers: iceServers,
   optional
 });
 
+navigator.getUserMedia = ( navigator.getUserMedia ||
+  navigator.webkitGetUserMedia ||
+  navigator.mozGetUserMedia ||
+  navigator.msGetUserMedia);
+
+  
+  
+
 function getAudio(successCallback, errorCallback) {
-  navigator.webkitGetUserMedia(
+  navigator.getUserMedia(
     {
       audio: true,
       video: false
@@ -41,10 +55,15 @@ function getAudio(successCallback, errorCallback) {
 
 function send_SDP() {
   console.log("now emitting send sdp message");
-  SocketService.emit("message", {
-    conversation_id: me.conversation_id,
-    targetUser: to,
-    sdp: peer.localDescription
+
+  socket.emit("message", {
+    message: JSON.stringify({
+      sdp: peer.localDescription
+    }),
+    user: currentuser.name,
+    channelid: currentuser.name,
+    channeltype: 1,
+    webcall: true
   });
 }
 
@@ -53,6 +72,7 @@ function startCall() {
     function(stream) {
       console.log("peer");
       console.log(peer);
+      console.log(stream)
 
       console.log("adding local stream");
       peer.addStream(stream);
@@ -65,11 +85,16 @@ function startCall() {
             function() {
               console.log("local description is set. now informing peer");
 
-              SocketService.emit("message", {
-                conversation_id: me.conversation_id,
-                targetUser: to,
-                offerSDP: offerSDP
+              socket.emit("message", {
+                message: JSON.stringify({
+                  offerSDP: offerSDP
+                }),
+                user: currentuser.name,
+                channelid: currentuser.name,
+                channeltype: 1,
+                webcall: true
               });
+              
             },
             function() {
               console.log("error setting local description");
@@ -83,7 +108,7 @@ function startCall() {
         sdpConstraints
       );
 
-      console.log("now calling " + to);
+      // console.log("now calling " + to);
     },
     function(err) {
       console.log("an error occured while getting the audio");
@@ -112,13 +137,11 @@ function createAnswer(offerSDP) {
               console.log("now emitting answer sdp message");
               socket.emit("message", {
                 message: JSON.stringify({
-                  conversation_id: me.conversation_id,
-                  targetUser: to,
                   answerSDP: answerSDP
                 }),
                 user: currentuser.name,
                 channelid: currentuser.name,
-                channeltype: 0,
+                channeltype: 1,
                 webcall: true
               });
             },
@@ -181,23 +204,29 @@ function createAnswer(offerSDP) {
 //   }
 // });
 
-peer.onaddstream = function(stream) {
-  console.log("now adding remote stream");
-  console.log(stream);
-  audio.src = window.URL.createObjectURL(stream); //this is where the error occurs
+peer.onaddstream = function(event) {
+  console.log('now adding remote stream');
+  console.log(event);
+  console.log("yeet", event.stream);
+  audio.srcObject = event.stream;
 };
 
 peer.onicecandidate = function(event) {
   console.log("on ice candidate");
   var candidate = event.candidate;
   console.log(candidate);
+  console.log(event)
   console.log("after ice candidate");
   if (candidate) {
     console.log("now emitting candidate message");
-    SocketService.emit("message", {
-      conversation_id: me.conversation_id,
-      targetUser: to,
-      candidate: candidate
+    socket.emit("message", {
+      message: JSON.stringify({
+        candidate: candidate
+      }),
+      user: currentuser.name,
+      channelid: currentuser.name,
+      channeltype: 1,
+      webcall: true
     });
   }
 
@@ -209,6 +238,7 @@ peer.onicecandidate = function(event) {
 };
 
 peer.ongatheringchange = function(e) {
+  console.log("EEEEEEEEEEEE")
   if (e.currentTarget && e.currentTarget.iceGatheringState === "complete") {
     send_SDP();
   }

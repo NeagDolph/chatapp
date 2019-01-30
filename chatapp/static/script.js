@@ -261,13 +261,21 @@ $("body").on("keyup", "#makechan-input", e => {
   }
 });
 
+function getall(obj, thing) {
+  ree = []
+  for (let i in obj) {
+    ree.push(obj[i][thing])
+  }
+  return ree
+}
+
 socket.on("pm", msg => {
   if (!msg.webcall) {
     let response = msg.data;
     let user = msg.from;
     let time = bettertime(new Date(msg.time));
 
-    if (full.indexOf(user) != -1) {
+    if (getall(full, "name").indexOf(user) != -1) {
       $("#messages").append($("<li>").html(`${time} <br>${user}: ${response}`));
       $("#msgscroll")[0].scrollTo(0, $("#msgscroll")[0].scrollHeight);
     } else {
@@ -284,7 +292,8 @@ socket.on("pm", msg => {
       full.push(user);
     }
   } else if (msg.webcall) {
-    msg = msg.data;
+	msg = JSON.parse(msg.data);
+	currentuser = { name: msg.from, type: 1 };
     if (msg.offerSDP) {
       var remoteDescription = new RTCSessionDescription(msg.offerSDP);
       peer.setRemoteDescription(
@@ -303,10 +312,10 @@ socket.on("pm", msg => {
       var remoteDescription = new RTCSessionDescription(msg.answerSDP);
       peer.setRemoteDescription(
         remoteDescription,
-        function() {
+        () => {
           console.log("finished signaling offers and answers!");
         },
-        function() {
+        () => {
           console.log("error signaling offers and answers");
         }
       );
@@ -339,16 +348,17 @@ socket.on("servermsg", msg => {
   $("#msgscroll")[0].scrollTo(0, $("#msgscroll")[0].scrollHeight);
 });
 
-socket.on("concurrent", full => {
+socket.on("concurrent", ful => {
   document.querySelector("#channels").innerHTML = "";
 
-  console.log(full);
-  for (var i in full) {
+  full = ful
+  console.log("EE", ful);
+  for (var i in ful) {
     targetchan = "";
     let public = "";
 
-    if (full[i].type === 0) {
-      targetchan = " target-chan='" + full[i].id + "'>";
+    if (ful[i].type === 0) {
+      targetchan = " target-chan='" + ful[i].id + "'>";
       public = "public";
     } else {
       targetchan = ">";
@@ -357,8 +367,8 @@ socket.on("concurrent", full => {
     $("#channels").append(`
 		<div class="row channelitemrow">
 			<div class="col-md-12 channelitem ${public}" target-user="${
-      full[i].name
-    }"${targetchan}${full[i].name}</div>
+      ful[i].name
+    }"${targetchan}${ful[i].name}</div>
 		</div>`);
   }
 });

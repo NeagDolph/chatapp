@@ -310,14 +310,17 @@ def msg(message):
 	timing = int(round(time.time() * 1000))
 
 	if chantype == 1:
+		if message.get("webcall", False):
+			print(msg)
+			emit("pm", {'data': msg, 'from': thisuser, 'time': timing, 'webcall': True}, room=user, json=True)
+		else:
+			channelname = ";".join(sorted([user, thisuser]))
+			hashedname = hashlib.md5(channelname.encode()).hexdigest()
+			query = "insert into direct_" + hashedname + " (message, date, userid) values (%s, %s, %s)"
+			db.execute(query, (msg, str(timing), userid))
+			mydb.commit()
 
-		channelname = ";".join(sorted([user, thisuser]))
-		hashedname = hashlib.md5(channelname.encode()).hexdigest()
-		query = "insert into direct_" + hashedname + " (message, date, userid) values (%s, %s, %s)"
-		db.execute(query, (msg, str(timing), userid))
-		mydb.commit()
-
-		emit("pm", {'data': msg, 'from': thisuser, 'time': timing}, room=user, json=True)
+			emit("pm", {'data': msg, 'from': thisuser, 'time': timing}, room=user, json=True)
 	elif chantype == 0:
 		# channelname = message.get("channelid", False)
 
@@ -397,4 +400,4 @@ def join(path):
 
 
 if __name__ == '__main__':
-	socketio.run(app, host="0.0.0.0", port=80, debug=True)
+	socketio.run(app, host="localhost", port=80, debug=True)
