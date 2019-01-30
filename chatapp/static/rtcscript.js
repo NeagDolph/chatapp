@@ -1,17 +1,19 @@
+var candidate;
+
 var iceServers = [
-  { url: 'stun:stun1.l.google.com:19302' },
+  { url: "stun:stun1.l.google.com:19302" },
   {
-    'urls': [
-      'turn:webrtcweb.com:7788', // coTURN 7788+8877
-      'turn:webrtcweb.com:8877',
-      'turn:webrtcweb.com:4455', // restund udp
+    urls: [
+      "turn:webrtcweb.com:7788", // coTURN 7788+8877
+      "turn:webrtcweb.com:8877",
+      "turn:webrtcweb.com:4455" // restund udp
     ],
-    'username': 'muazkh',
-    'credential': 'muazkh'
+    username: "muazkh",
+    credential: "muazkh"
   }
 ];
 
-audio = $("#audio1")[0]
+audio = $("#audio1")[0];
 
 var sdpConstraints = {
   optional: [],
@@ -34,13 +36,11 @@ var peer = new RTCPeerConnection({
   optional
 });
 
-navigator.getUserMedia = ( navigator.getUserMedia ||
+navigator.getUserMedia =
+  navigator.getUserMedia ||
   navigator.webkitGetUserMedia ||
   navigator.mozGetUserMedia ||
-  navigator.msGetUserMedia);
-
-  
-  
+  navigator.msGetUserMedia;
 
 function getAudio(successCallback, errorCallback) {
   navigator.getUserMedia(
@@ -72,7 +72,7 @@ function startCall() {
     function(stream) {
       console.log("peer");
       console.log(peer);
-      console.log(stream)
+      console.log(stream);
 
       console.log("adding local stream");
       peer.addStream(stream);
@@ -94,7 +94,6 @@ function startCall() {
                 channeltype: 1,
                 webcall: true
               });
-              
             },
             function() {
               console.log("error setting local description");
@@ -133,8 +132,7 @@ function createAnswer(offerSDP) {
           peer.setLocalDescription(
             answerSDP,
             function() {
-              console.log("done setting local description");
-              console.log("now emitting answer sdp message");
+              console.log("now emitting answer sdp message", answerSDP);
               socket.emit("message", {
                 message: JSON.stringify({
                   answerSDP: answerSDP
@@ -205,7 +203,7 @@ function createAnswer(offerSDP) {
 // });
 
 peer.onaddstream = function(event) {
-  console.log('now adding remote stream');
+  console.log("now adding remote stream");
   console.log(event);
   console.log("yeet", event.stream);
   audio.srcObject = event.stream;
@@ -213,9 +211,9 @@ peer.onaddstream = function(event) {
 
 peer.onicecandidate = function(event) {
   console.log("on ice candidate");
-  var candidate = event.candidate;
+  candidate = event.candidate;
   console.log(candidate);
-  console.log(event)
+  console.log(event);
   console.log("after ice candidate");
   if (candidate) {
     console.log("now emitting candidate message");
@@ -238,7 +236,7 @@ peer.onicecandidate = function(event) {
 };
 
 peer.ongatheringchange = function(e) {
-  console.log("EEEEEEEEEEEE")
+  console.log("EEEEEEEEEEEE");
   if (e.currentTarget && e.currentTarget.iceGatheringState === "complete") {
     send_SDP();
   }

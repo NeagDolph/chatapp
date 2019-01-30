@@ -311,7 +311,7 @@ def msg(message):
 
 	if chantype == 1:
 		if message.get("webcall", False):
-			print(msg)
+			print(json.loads(msg).keys(), "USER: ", user)
 			emit("pm", {'data': msg, 'from': thisuser, 'time': timing, 'webcall': True}, room=user, json=True)
 		else:
 			channelname = ";".join(sorted([user, thisuser]))

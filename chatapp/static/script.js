@@ -262,11 +262,11 @@ $("body").on("keyup", "#makechan-input", e => {
 });
 
 function getall(obj, thing) {
-  ree = []
+  ree = [];
   for (let i in obj) {
-    ree.push(obj[i][thing])
+    ree.push(obj[i][thing]);
   }
-  return ree
+  return ree;
 }
 
 socket.on("pm", msg => {
@@ -292,23 +292,23 @@ socket.on("pm", msg => {
       full.push(user);
     }
   } else if (msg.webcall) {
-	msg = JSON.parse(msg.data);
-	currentuser = { name: msg.from, type: 1 };
+    currentuser = { name: msg.from, type: 1 };
+
+    msg = JSON.parse(msg.data);
+
     if (msg.offerSDP) {
       var remoteDescription = new RTCSessionDescription(msg.offerSDP);
       peer.setRemoteDescription(
         remoteDescription,
         function() {
-          console.log("done setting remote description");
+          console.log("REEEEEEEEEEEEEEEEEE");
           createAnswer(msg.offerSDP);
         },
         function() {
           console.log("error setting remote description");
         }
       );
-    }
-
-    if (msg.answerSDP) {
+    } else if (msg.answerSDP) {
       var remoteDescription = new RTCSessionDescription(msg.answerSDP);
       peer.setRemoteDescription(
         remoteDescription,
@@ -319,9 +319,7 @@ socket.on("pm", msg => {
           console.log("error signaling offers and answers");
         }
       );
-    }
-
-    if (msg.candidate) {
+    } else if (msg.candidate) {
       var candidate = msg.candidate.candidate;
       var sdpMLineIndex = msg.candidate.sdpMLineIndex;
 
@@ -351,7 +349,7 @@ socket.on("servermsg", msg => {
 socket.on("concurrent", ful => {
   document.querySelector("#channels").innerHTML = "";
 
-  full = ful
+  full = ful;
   console.log("EE", ful);
   for (var i in ful) {
     targetchan = "";
