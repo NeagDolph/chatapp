@@ -2,6 +2,9 @@ var socket = io();
 var full = [];
 var currentuser;
 var copyid = new ClipboardJS("#copyid");
+var currentcalling;
+var currentcallingname;
+var accepteduser;
 
 copyid.on("success", function(e) {
   toastr["success"]("Channel ID copied to clipboard", "Success!");
@@ -146,7 +149,10 @@ $("body").on("mousedown", ".channelitem", ef => {
   $(".chatarea").show();
 
   try {
-    if (currentuser.name === $(ef.currentTarget).text()) {
+    if (
+      currentuser.name === $(ef.currentTarget).text() &&
+      $(".channels").hasClass("inchannel")
+    ) {
       return;
     }
   } catch {}
@@ -158,9 +164,11 @@ $("body").on("mousedown", ".channelitem", ef => {
     currentuser.name = $(ef.currentTarget).attr("target-chan");
     currentuser.type = 0;
     $(".channels").addClass("inchannel");
+    $(".chatarea").removeClass("inpm");
     $("#copyid").attr("data-clipboard-text", currentuser.name);
   } else {
     $(".channels").removeClass("inchannel");
+    $(".chatarea").addClass("inpm");
   }
 
   $(ef.currentTarget).removeClass("unread");
@@ -297,17 +305,10 @@ socket.on("pm", msg => {
     msg = JSON.parse(msg.data);
 
     if (msg.offerSDP) {
-      var remoteDescription = new RTCSessionDescription(msg.offerSDP);
-      peer.setRemoteDescription(
-        remoteDescription,
-        function() {
-          console.log("REEEEEEEEEEEEEEEEEE");
-          createAnswer(msg.offerSDP);
-        },
-        function() {
-          console.log("error setting remote description");
-        }
-      );
+      currentcalling = msg.offerSDP;
+      currentcallingname = currentuser.name;
+      $(".calluser").text(currentuser.name);
+      $(".calltab").show();
     } else if (msg.answerSDP) {
       var remoteDescription = new RTCSessionDescription(msg.answerSDP);
       peer.setRemoteDescription(
@@ -332,6 +333,28 @@ socket.on("pm", msg => {
     }
   }
 });
+
+function acceptcall(e) {
+  accepteduser = currentcallingname;
+  console.log("e");
+  $(".calltab").hide();
+
+  var remoteDescription = new RTCSessionDescription(e);
+  peer.setRemoteDescription(
+    remoteDescription,
+    function() {
+      console.log("Call accepted");
+      createAnswer(e);
+    },
+    function() {
+      console.log("error setting remote description");
+    }
+  );
+}
+
+function declinecall() {
+  $(".calltab").hide();
+}
 
 socket.on("servermsg", msg => {
   let response = msg["data"];

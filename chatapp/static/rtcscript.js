@@ -5,9 +5,9 @@ var iceServers = [
   { url: "stun:stun1.l.google.com:19302" },
   {
     urls: [
-      "turn:webrtcweb.com:7788", // coTURN 7788+8877
+      "turn:webrtcweb.com:7788",
       "turn:webrtcweb.com:8877",
-      "turn:webrtcweb.com:4455" // restund udp
+      "turn:webrtcweb.com:4455"
     ],
     username: "muazkh",
     credential: "muazkh"
@@ -70,22 +70,23 @@ function send_SDP() {
 
 function startCall() {
   getAudio(
-    function(stream) {
-      startaudio()
+    stream => {
+      startaudio();
       console.log("peer");
       console.log(peer);
       console.log(stream);
-      strem = stream
+      strem = stream;
+      accepteduser = currentuser.name;
 
       console.log("adding local stream");
       peer.addStream(stream);
 
       peer.createOffer(
-        function(offerSDP) {
+        offerSDP => {
           console.log("now creating offer");
           peer.setLocalDescription(
             offerSDP,
-            function() {
+            () => {
               console.log("local description is set. now informing peer");
 
               socket.emit("message", {
@@ -98,13 +99,13 @@ function startCall() {
                 webcall: true
               });
             },
-            function() {
+            () => {
               console.log("error setting local description");
             }
           );
           console.log("now emitting offerSDP message");
         },
-        function() {
+        () => {
           console.log("error occured while creating offer");
         },
         sdpConstraints
@@ -112,7 +113,7 @@ function startCall() {
 
       // console.log("now calling " + to);
     },
-    function(err) {
+    err => {
       console.log("an error occured while getting the audio");
     }
   );
@@ -120,10 +121,11 @@ function startCall() {
 
 function createAnswer(offerSDP) {
   getAudio(
-    function(stream) {
+    stream => {
       console.log("now creating answer");
       console.log(stream);
-      strem = stream
+      strem = stream;
+      startaudio();
 
       console.log("NOW ADDING STREAM");
       peer.addStream(stream);
@@ -132,10 +134,10 @@ function createAnswer(offerSDP) {
       peer.setRemoteDescription(remoteDescription);
 
       peer.createAnswer(
-        function(answerSDP) {
+        answerSDP => {
           peer.setLocalDescription(
             answerSDP,
-            function() {
+            () => {
               console.log("now emitting answer sdp message", answerSDP);
               socket.emit("message", {
                 message: JSON.stringify({
@@ -147,19 +149,19 @@ function createAnswer(offerSDP) {
                 webcall: true
               });
             },
-            function() {
+            () => {
               console.log("error setting local description");
             }
           );
         },
-        function(err) {
+        err => {
           alert("error occured while creating answer");
           console.log(err);
         },
         sdpConstraints
       );
     },
-    function(err) {
+    err => {
       alert("error occured while getting the audio for answer");
     }
   );
@@ -206,14 +208,14 @@ function createAnswer(offerSDP) {
 //   }
 // });
 
-peer.onaddstream = function(event) {
+peer.onaddstream = event => {
   console.log("now adding remote stream");
   console.log(event);
   console.log("yeet", event.stream);
   audio.srcObject = event.stream;
 };
 
-peer.onicecandidate = function(event) {
+peer.onicecandidate = event => {
   console.log("on ice candidate");
   candidate = event.candidate;
   console.log(candidate);
@@ -239,7 +241,7 @@ peer.onicecandidate = function(event) {
   }
 };
 
-peer.ongatheringchange = function(e) {
+peer.ongatheringchange = e => {
   console.log("EEEEEEEEEEEE");
   if (e.currentTarget && e.currentTarget.iceGatheringState === "complete") {
     send_SDP();

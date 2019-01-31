@@ -76,10 +76,10 @@ function volumeAudioProcess(event) {
 	if (strem) {
 		if (this.volume < 0.009) {
 			strem.getAudioTracks()[0].enabled = false
-			// console.log("false")
+			console.log("false")
 		} else {
 			strem.getAudioTracks()[0].enabled = true
-			// console.log("true")
+			console.log("true")
 		}
 	}
 }
