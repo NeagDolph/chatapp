@@ -1,4 +1,5 @@
 var candidate;
+var strem;
 
 var iceServers = [
   { url: "stun:stun1.l.google.com:19302" },
@@ -70,9 +71,11 @@ function send_SDP() {
 function startCall() {
   getAudio(
     function(stream) {
+      startaudio()
       console.log("peer");
       console.log(peer);
       console.log(stream);
+      strem = stream
 
       console.log("adding local stream");
       peer.addStream(stream);
@@ -120,6 +123,7 @@ function createAnswer(offerSDP) {
     function(stream) {
       console.log("now creating answer");
       console.log(stream);
+      strem = stream
 
       console.log("NOW ADDING STREAM");
       peer.addStream(stream);
