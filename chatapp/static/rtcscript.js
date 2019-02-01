@@ -69,6 +69,10 @@ function send_SDP() {
 }
 
 function startCall() {
+  if (incall) {
+    alert("Already in call!");
+    return;
+  }
   getAudio(
     stream => {
       startaudio();
@@ -210,9 +214,11 @@ function createAnswer(offerSDP) {
 
 peer.onaddstream = event => {
   console.log("now adding remote stream");
+  incall = true;
   console.log(event);
   console.log("yeet", event.stream);
   audio.srcObject = event.stream;
+  audio.play()
 };
 
 peer.onicecandidate = event => {
@@ -245,5 +251,11 @@ peer.ongatheringchange = e => {
   console.log("EEEEEEEEEEEE");
   if (e.currentTarget && e.currentTarget.iceGatheringState === "complete") {
     send_SDP();
+  }
+};
+
+peer.oniceconnectionstatechange = function() {
+  if (peer.iceConnectionState == "disconnected") {
+    console.log("Disconnected");
   }
 };

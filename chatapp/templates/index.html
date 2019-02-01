@@ -182,10 +182,60 @@
       .inpm .fa-phone {
         display: inline-block;
       }
+
+      .fa-phone:hover {
+        color: rgb(104, 104, 104);
+      }
+
+      #incallicon {
+        z-index: 999999;
+        height: 24px;
+        width: 24px;
+        position: absolute;
+        top: 0;
+        right: 0;
+      }
+      
+      #incallicon svg {
+        height: 24px;
+        width: 24px;
+        position: relative;
+        top: -27px;
+        fill: currentColor;
+      }
+      
+      #incallicon svg image {
+        height: 24px;
+        width: 24px;
+      }
+
+      .calloptions {
+        width: 200px;
+        height: 200px;
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: rgb(79, 79, 109);
+        border-radius: 25px;
+        z-index: 999999;
+      }
+
+      .endcall {
+
+      }
     </style>
   </head>
 
   <body>
+
+    <div class="calloptions">
+      <div class="row">
+        <div class="col-12 optionsname">Yeet</div>
+      </div>
+      <div class="row" style="display: flex; justify-content: center;">
+        <div class="col-3 endcall">End Call</div>
+      </div>
+    </div>
     <div class="calltab" style="display: none; ">
       <div class="row"><div class="col-12 calluser">Yeet</div></div>
       <div class="row callbuttons">
@@ -201,7 +251,7 @@
       </div>
     </div>
 
-    <audio id="audio1"></audio>
+    <audio id="audio1" controls></audio>
 
     <div class="row main">
       <div class="col-md-2 col-xs-2 col-2 channels">

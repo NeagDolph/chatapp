@@ -5,6 +5,7 @@ var copyid = new ClipboardJS("#copyid");
 var currentcalling;
 var currentcallingname;
 var accepteduser;
+var incall;
 
 copyid.on("success", function(e) {
   toastr["success"]("Channel ID copied to clipboard", "Success!");
@@ -43,7 +44,7 @@ function adduser(user) {
 				</div>`
         );
         $(".chatarea").show();
-        currentuser = { name: user, type: 1 };
+        currentuser = { name: user.trim(), type: 1 };
         $("#messages").html("");
         $(".channel").text(user);
 
@@ -157,7 +158,7 @@ $("body").on("mousedown", ".channelitem", ef => {
     }
   } catch {}
 
-  currentuser = { name: $(ef.currentTarget).text(), type: 1 };
+  currentuser = { name: $(ef.currentTarget).text().trim(), type: 1 };
 
   if ($(ef.currentTarget).attr("target-chan")) {
     currentuser.title = currentuser.name;
@@ -257,7 +258,7 @@ $("body").on("keyup", "#makechan-input", e => {
 					</div>`
           );
           $(".chatarea").show();
-          currentuser = { id: channelid, name: channame, type: 0 };
+          currentuser = { id: channelid, name: channame.trim(), type: 0 };
           $("#messages").html("");
           $(".channel").text(channelid);
 
@@ -270,7 +271,7 @@ $("body").on("keyup", "#makechan-input", e => {
 });
 
 function getall(obj, thing) {
-  ree = [];
+  let ree = [];
   for (let i in obj) {
     ree.push(obj[i][thing]);
   }
@@ -297,10 +298,10 @@ socket.on("pm", msg => {
           `</div>
 		</div>`
       );
-      full.push(user);
+      full.push({name: user, type: 1});
     }
   } else if (msg.webcall) {
-    currentuser = { name: msg.from, type: 1 };
+    currentuser = { name: msg.from.trim(), type: 1 };
 
     msg = JSON.parse(msg.data);
 
@@ -309,11 +310,13 @@ socket.on("pm", msg => {
       currentcallingname = currentuser.name;
       $(".calluser").text(currentuser.name);
       $(".calltab").show();
+      // acceptcall(msg.offerSDP)
     } else if (msg.answerSDP) {
       var remoteDescription = new RTCSessionDescription(msg.answerSDP);
       peer.setRemoteDescription(
         remoteDescription,
         () => {
+          incall = true;
           console.log("finished signaling offers and answers!");
         },
         () => {
@@ -321,6 +324,7 @@ socket.on("pm", msg => {
         }
       );
     } else if (msg.candidate) {
+      console.log("D");
       var candidate = msg.candidate.candidate;
       var sdpMLineIndex = msg.candidate.sdpMLineIndex;
 
@@ -387,7 +391,7 @@ socket.on("concurrent", ful => {
 
     $("#channels").append(`
 		<div class="row channelitemrow">
-			<div class="col-md-12 channelitem ${public}" target-user="${
+			<div class="col-md-12 channelitem ${public}" id="privatem_${ful[i].name}" target-user="${
       ful[i].name
     }"${targetchan}${ful[i].name}</div>
 		</div>`);
@@ -415,4 +419,18 @@ function bettertime(time) {
   }
 
   return `Today at ${hours}:${mins} ${ampm}`;
+}
+
+function startaudio() {
+  startvolumelvl()
+  $("#privatem_" + currentuser.name).append(`
+  <div id="incallicon">
+    <svg id="circle" height="60" width="60" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" >
+      <image x="0" y="0" height="60" width="60"  xlink:href="/static/icon.svg" />
+   </svg>
+  </div>`)
+}
+
+function stopaudio() {
+
 }
