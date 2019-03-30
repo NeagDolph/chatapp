@@ -1,11 +1,12 @@
 var socket = io();
 var full = [];
-var currentuser;
+var currentuser = { name: "", type: 0 };
 var copyid = new ClipboardJS("#copyid");
 var currentcalling;
 var currentcallingname;
 var accepteduser;
 var incall;
+var allmessages = {};
 
 copyid.on("success", function(e) {
   toastr["success"]("Channel ID copied to clipboard", "Success!");
@@ -32,11 +33,11 @@ function adduser(user) {
     data: { user: user },
     success: data => {
       if (data === "success") {
-        full.push(user);
+        full.push({ name: user, type: 1 });
         $("#channels").append(
           `
 				<div class="row channelitemrow">
-					<div class="col-md-12 channelitem" target-user="` +
+					<div class="col-md-12 channelitem" id="privatem_${user}" target-user="` +
             user +
             `">` +
             user +
@@ -47,9 +48,10 @@ function adduser(user) {
         currentuser = { name: user.trim(), type: 1 };
         $("#messages").html("");
         $(".channel").text(user);
-
         $("#adduser-input").val("");
         addusertip.hide();
+        $(".channels").removeClass("inchannel");
+        $(".chatarea").addClass("inpm");
       } else if (data === "noexist") {
         toastr["error"]("User does not exist!", "Error!");
 
@@ -100,11 +102,41 @@ function getmessages(targt) {
   console.log("this", targt);
   let target = targt.name;
   let channel;
+  let alrdystored = false;
+  let data;
 
   if (targt.type == 1) {
     channel = [selfuser, target].sort().join(";");
+    if (allmessages["privatem_" + target].length > 0) {
+      alrdystored = true;
+      data = allmessages["privatem_" + target];
+    }
   } else {
     channel = targt.name;
+    if (allmessages["channel_" + target].length > 0) {
+      alrdystored = true;
+      data = allmessages["channel_" + target];
+    }
+  }
+
+  if (alrdystored) {
+    $("#messages").html("");
+    for (let i in data) {
+      obj = data[i];
+      let time = bettertime(new Date(obj.time * 1));
+      let response = obj.message;
+      let sender = obj.sender;
+
+      if (obj.you) {
+        sender = "You";
+      }
+
+      $("#messages").append(
+        $("<li>").html(`${time} <br>${sender}: ${response}`)
+      );
+    }
+    $("#msgscroll")[0].scrollTo(0, $("#msgscroll")[0].scrollHeight);
+    return;
   }
 
   console.log("tee", channel);
@@ -113,10 +145,17 @@ function getmessages(targt) {
     url: "/messages",
     type: "POST",
     data: { channel: channel, limit: 15, channeltype: targt.type },
-    success: data => {
-      data = JSON.parse(data);
+    success: json => {
+      json = JSON.parse(json);
+
+      data = json.messages;
 
       $("#messages").html("");
+      if (targt.type == 1) {
+        allmessages["privatem_" + target] = [];
+      } else {
+        allmessages["channel_" + channel] = [];
+      }
 
       for (let i in data) {
         obj = data[i];
@@ -126,8 +165,20 @@ function getmessages(targt) {
 
         if (targt.type == 1) {
           sender = target;
+          allmessages["privatem_" + sender].push({
+            message: response,
+            time: obj.time * 1,
+            sender: sender,
+            you: obj.you
+          });
         } else {
           sender = obj.sender;
+          allmessages["channel_" + channel].push({
+            message: response,
+            time: obj.time * 1,
+            sender: sender,
+            you: obj.you
+          });
         }
 
         if (obj.you) {
@@ -158,7 +209,12 @@ $("body").on("mousedown", ".channelitem", ef => {
     }
   } catch {}
 
-  currentuser = { name: $(ef.currentTarget).text().trim(), type: 1 };
+  currentuser = {
+    name: $(ef.currentTarget)
+      .text()
+      .trim(),
+    type: 1
+  };
 
   if ($(ef.currentTarget).attr("target-chan")) {
     currentuser.title = currentuser.name;
@@ -166,7 +222,10 @@ $("body").on("mousedown", ".channelitem", ef => {
     currentuser.type = 0;
     $(".channels").addClass("inchannel");
     $(".chatarea").removeClass("inpm");
-    $("#copyid").attr("data-clipboard-text", currentuser.name);
+    $("#copyid").attr(
+      "data-clipboard-text",
+      window.location.href + "join/" + currentuser.name
+    );
   } else {
     $(".channels").removeClass("inchannel");
     $(".chatarea").addClass("inpm");
@@ -184,14 +243,30 @@ $("body").on("mousedown", ".channelitem", ef => {
 $(".msgform").submit(e => {
   e.preventDefault();
   msg = $("#m").val();
+
+  if (msg === "") {
+    return false;
+  }
   let time = bettertime(new Date());
   if (currentuser.type === 1) {
+    allmessages["privatem_" + currentuser.name].push({
+      message: msg,
+      sender: selfuser,
+      time: Date.now(),
+      you: true
+    });
     socket.emit("message", {
       message: msg,
       user: currentuser.name,
       channeltype: 1
     });
   } else {
+    allmessages["channel_" + currentuser.name].push({
+      message: msg,
+      sender: selfuser,
+      time: Date.now(),
+      you: true
+    });
     socket.emit("message", {
       message: msg,
       user: currentuser.name,
@@ -258,12 +333,19 @@ $("body").on("keyup", "#makechan-input", e => {
 					</div>`
           );
           $(".chatarea").show();
-          currentuser = { id: channelid, name: channame.trim(), type: 0 };
+          currentuser = { name: channelid, title: channame.trim(), type: 0 };
           $("#messages").html("");
-          $(".channel").text(channelid);
+          $(".channel").text(title);
 
           $("#makechan-input").val("");
           addusertop.hide();
+
+          $(".channels").addClass("inchannel");
+          $(".chatarea").removeClass("inpm");
+          $("#copyid").attr(
+            "data-clipboard-text",
+            window.location.href + "join/" + currentuser.name
+          );
         }
       }
     });
@@ -284,6 +366,20 @@ socket.on("pm", msg => {
     let user = msg.from;
     let time = bettertime(new Date(msg.time));
 
+    console.log(currentuser.name, user);
+    if (allmessages["privatem_" + user].length > 0) {
+      allmessages["privatem_" + user].push({
+        message: response,
+        time: msg.time,
+        sender: user
+      });
+    }
+
+    if (currentuser.type == 0 || currentuser.name != user) {
+      $("#privatem_" + user).addClass("unread");
+      return false;
+    }
+
     if (getall(full, "name").indexOf(user) != -1) {
       $("#messages").append($("<li>").html(`${time} <br>${user}: ${response}`));
       $("#msgscroll")[0].scrollTo(0, $("#msgscroll")[0].scrollHeight);
@@ -291,14 +387,14 @@ socket.on("pm", msg => {
       $("#channels").prepend(
         `
 		<div class="row channelitemrow">
-			<div class="col-md-12 channelitem unread" target-user="` +
+			<div class="col-md-12 channelitem unread" id="privatem_${user}" target-user="` +
           user +
           `">` +
           user +
           `</div>
 		</div>`
       );
-      full.push({name: user, type: 1});
+      full.push({ name: user, type: 1 });
     }
   } else if (msg.webcall) {
     currentuser = { name: msg.from.trim(), type: 1 };
@@ -361,11 +457,27 @@ function declinecall() {
 }
 
 socket.on("servermsg", msg => {
-  let response = msg["data"];
-  let user = msg["from"];
-  let time = bettertime(new Date(msg["time"]));
+  let response = msg.data;
+  let user = msg.from;
+  let channel = msg.channel;
+  let time = bettertime(new Date(msg.time));
 
-  if (user == selfuser) {
+  if (allmessages["channel_" + channel].length > 0) {
+    allmessages["channel_" + channel].push({
+      message: response,
+      time: msg.time,
+      sender: user
+    });
+  }
+
+  if (
+    user == selfuser ||
+    currentuser.name !== channel ||
+    currentuser.type === 1
+  ) {
+    console.log(currentuser.name, channel);
+    console.log("#channel_" + channel);
+    $("#channel_" + channel).addClass("unread");
     return;
   }
 
@@ -374,27 +486,36 @@ socket.on("servermsg", msg => {
 });
 
 socket.on("concurrent", ful => {
+  console.log(ful);
+  if (Object.entries(allmessages).length > 0 && obj.constructor === Object) {
+    return;
+  }
   document.querySelector("#channels").innerHTML = "";
 
   full = ful;
   console.log("EE", ful);
   for (var i in ful) {
     targetchan = "";
-    let public = "";
 
     if (ful[i].type === 0) {
-      targetchan = " target-chan='" + ful[i].id + "'>";
-      public = "public";
+      allmessages["channel_" + ful[i].id] = [];
+      $("#channels").append(`
+      <div class="row channelitemrow">
+        <div class="col-md-12 channelitem public" id="channel_${
+          ful[i].id
+        }" target-user="${ful[i].name}" target-chan="${ful[i].id}">${
+        ful[i].name
+      }</div>
+      </div>`);
     } else {
-      targetchan = ">";
+      allmessages["privatem_" + ful[i].name] = [];
+      $("#channels").append(`
+      <div class="row channelitemrow">
+        <div class="col-md-12 channelitem" id="privatem_${
+          ful[i].name
+        }" target-user="${ful[i].name}">${ful[i].name}</div>
+      </div>`);
     }
-
-    $("#channels").append(`
-		<div class="row channelitemrow">
-			<div class="col-md-12 channelitem ${public}" id="privatem_${ful[i].name}" target-user="${
-      ful[i].name
-    }"${targetchan}${ful[i].name}</div>
-		</div>`);
   }
 });
 
@@ -422,15 +543,13 @@ function bettertime(time) {
 }
 
 function startaudio() {
-  startvolumelvl()
+  startvolumelvl();
   $("#privatem_" + currentuser.name).append(`
   <div id="incallicon">
     <svg id="circle" height="60" width="60" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" >
       <image x="0" y="0" height="60" width="60"  xlink:href="/static/icon.svg" />
    </svg>
-  </div>`)
+  </div>`);
 }
 
-function stopaudio() {
-
-}
+function stopaudio() {}
