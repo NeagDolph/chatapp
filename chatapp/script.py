@@ -49,6 +49,9 @@ def add():
     userid = session.get("userid", False)
     added = request.form.get("user", False)
 
+    if added == username:
+        return
+
     channelname = ";".join(sorted([username, added]))
     hashedname = hashlib.md5(channelname.encode()).hexdigest()
 
@@ -324,6 +327,23 @@ def msg(message):
     thisuser = session.get("user", "undefined")
     userid = session.get("userid", "undefined")
     timing = int(round(time.time() * 1000))
+
+    query = "SELECT userid FROM users WHERE user='%s'"
+    db.execute(query % added)
+    sqlresult = db.fetchall()
+
+    try:
+        query = "SELECT COUNT(*) FROM direct_%s"
+        db.execute(query % (hashedname))
+    except:
+        emit(
+            "pmerror", {
+                'intended': thisuser,
+            },
+            room=thisuser,
+            json=True)
+        return
+        
 
     if chantype == 1:
         if message.get("webcall", False):

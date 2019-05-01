@@ -385,14 +385,9 @@ socket.on("pm", msg => {
       $("#msgscroll")[0].scrollTo(0, $("#msgscroll")[0].scrollHeight);
     } else {
       $("#channels").prepend(
-        `
-		<div class="row channelitemrow">
-			<div class="col-md-12 channelitem unread" id="privatem_${user}" target-user="` +
-          user +
-          `">` +
-          user +
-          `</div>
-		</div>`
+        `<div class="row channelitemrow">
+          <div class="col-md-12 channelitem unread" id="privatem_${user}" target-user="${user}">${user}</div>
+		    </div>`
       );
       full.push({ name: user, type: 1 });
     }
