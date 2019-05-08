@@ -50,7 +50,7 @@ def add():
     added = request.form.get("user", False)
 
     if added == username:
-        return
+        return "you"
 
     channelname = ";".join(sorted([username, added]))
     hashedname = hashlib.md5(channelname.encode()).hexdigest()
@@ -78,19 +78,19 @@ def add():
             query = 'CREATE TABLE IF NOT EXISTS direct_%s (message TEXT, date TEXT, userid TEXT, id INTEGER Primary Key auto_increment)'
             db.execute(query % hashedname)
 
-            query = 'insert into linkedchan values(%s, %s, %s, true)'
-            db.execute(query, (
-                username,
-                userid,
-                channelname,
-            ))
+            # query = 'insert into linkedchan values(%s, %s, %s, true)'
+            # db.execute(query, (
+            #     username,
+            #     userid,
+            #     channelname,
+            # ))
 
-            query = 'insert into linkedchan values(%s, %s, %s, true)'
-            db.execute(query, (
-                username,
-                addedid,
-                channelname,
-            ))
+            # query = 'insert into linkedchan values(%s, %s, %s, true)'
+            # db.execute(query, (
+            #     username,
+            #     addedid,
+            #     channelname,
+            # ))
 
             mydb.commit()
 
@@ -467,6 +467,22 @@ def join(path):
         return redirect("/")
     else:
         return "E"
+
+@app.route("/acceptfriend")
+def acceptfriend():
+    query = 'insert into linkedchan values(%s, %s, %s, true)'
+    db.execute(query, (
+        username,
+        userid,
+        channelname,
+    ))
+
+    query = 'insert into linkedchan values(%s, %s, %s, true)'
+    db.execute(query, (
+        username,
+        addedid,
+        channelname,
+    ))
 
 
 if __name__ == '__main__':
