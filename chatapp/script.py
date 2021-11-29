@@ -78,19 +78,19 @@ def add():
             query = 'CREATE TABLE IF NOT EXISTS direct_%s (message TEXT, date TEXT, userid TEXT, id INTEGER Primary Key auto_increment)'
             db.execute(query % hashedname)
 
-            # query = 'insert into linkedchan values(%s, %s, %s, true)'
-            # db.execute(query, (
-            #     username,
-            #     userid,
-            #     channelname,
-            # ))
+            query = 'insert into linkedchan values(%s, %s, %s, true)'
+            db.execute(query, (
+                username,
+                userid,
+                channelname,
+            ))
 
-            # query = 'insert into linkedchan values(%s, %s, %s, true)'
-            # db.execute(query, (
-            #     username,
-            #     addedid,
-            #     channelname,
-            # ))
+            query = 'insert into linkedchan values(%s, %s, %s, true)'
+            db.execute(query, (
+                username,
+                addedid,
+                channelname,
+            ))
 
             mydb.commit()
 
@@ -119,8 +119,7 @@ def after_request(response):
     header['Access-Control-Allow-Origin'] = '*'
     header["Access-Control-Allow-Credentials"] = "true"
     header["Access-Control-Allow-Methods"] = "GET,HEAD,OPTIONS,POST,PUT"
-    header[
-        "Access-Control-Allow-Headers"] = "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers"
+    header["Access-Control-Allow-Headers"] = "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers"
     return response
 
 
@@ -328,21 +327,21 @@ def msg(message):
     userid = session.get("userid", "undefined")
     timing = int(round(time.time() * 1000))
 
-    query = "SELECT userid FROM users WHERE user='%s'"
-    db.execute(query % added)
-    sqlresult = db.fetchall()
+    # query = "SELECT userid FROM users WHERE user='%s'"
+    # db.execute(query % user)
+    # sqlresult = db.fetchall()
 
-    try:
-        query = "SELECT COUNT(*) FROM direct_%s"
-        db.execute(query % (hashedname))
-    except:
-        emit(
-            "pmerror", {
-                'intended': thisuser,
-            },
-            room=thisuser,
-            json=True)
-        return
+    # try:
+    #     query = "SELECT COUNT(*) FROM direct_%s"
+    #     db.execute(query % (hashedname))
+    # except:
+    #     emit(
+    #         "pmerror", {
+    #             'intended': thisuser,
+    #         },
+    #         room=thisuser,
+    #         json=True)
+    #     return
         
 
     if chantype == 1:
